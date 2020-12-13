@@ -5,7 +5,6 @@ package whoami_cname
 import (
 	"context"
 	"net"
-	"strconv"
 
 	"github.com/coredns/coredns/request"
 
