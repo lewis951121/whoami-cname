@@ -1,6 +1,6 @@
 // Package whoami implements a plugin that returns details about the resolving
 // querying it.
-package whoami
+package whoami_cname
 
 import (
 	"context"
@@ -12,14 +12,14 @@ import (
 	"github.com/miekg/dns"
 )
 
-const name = "whoami"
+const name = "whoami_cname"
 
-// Whoami is a plugin that returns your IP address, port and the protocol used for connecting
-// to CoreDNS.
-type Whoami struct{}
+// Whoami_Cname is a plugin that returns your IP address, port and the protocol used for connecting
+// to CoreDNS. Different from the built-in whoami, this plugin includes the above info in a CNAME rdata.
+type Whoami_Cname struct{}
 
 // ServeDNS implements the plugin.Handler interface.
-func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (wh Whoami_Cname) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 
 	a := new(dns.Msg)
@@ -29,6 +29,7 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	ip := state.IP()
 	var rr dns.RR
 
+	// the address of the egress resolver
 	switch state.Family() {
 	case 1:
 		rr = new(dns.A)
@@ -40,6 +41,8 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		rr.(*dns.AAAA).AAAA = net.ParseIP(ip)
 	}
 
+	// todo: returning the src port, 0x20 status, ...
+	/*
 	srv := new(dns.SRV)
 	srv.Hdr = dns.RR_Header{Name: "_" + state.Proto() + "." + state.QName(), Rrtype: dns.TypeSRV, Class: state.QClass()}
 	if state.QName() == "." {
@@ -48,8 +51,9 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	port, _ := strconv.Atoi(state.Port())
 	srv.Port = uint16(port)
 	srv.Target = "."
+	*/
 
-	a.Extra = []dns.RR{rr, srv}
+	a.Answer = []dns.RR{rr}
 
 	w.WriteMsg(a)
 
@@ -57,4 +61,4 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 }
 
 // Name implements the Handler interface.
-func (wh Whoami) Name() string { return name }
+func (wh Whoami_Cname) Name() string { return name }
